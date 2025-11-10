@@ -21,20 +21,30 @@
 
 **📦 This repository is now deployment-ready for Contabo servers with Nginx + Nextcloud Docker!**
 
-### Quick Deployment Guides:
-- **⚡ [QUICK_DEPLOY.md](QUICK_DEPLOY.md)** - Step-by-step deployment (10-30 mins)
+### Choose Your Path:
+
+#### **Path 1: Already Have Nextcloud?** ✅ (Recommended - 5 minutes)
+**You DON'T need a database!** Just integrate with your existing Nextcloud:
+- **🔗 [EXISTING_NEXTCLOUD_INTEGRATION.md](EXISTING_NEXTCLOUD_INTEGRATION.md)** - Add one line to your docker-compose.yml
+- **🤖 [agent.md](agent.md)** - Complete guide for AI agents (includes integration steps)
+
+#### **Path 2: Need New Nextcloud?** (20 minutes)
+Starting from scratch? We've got you covered:
+- **⚡ [QUICK_DEPLOY.md](QUICK_DEPLOY.md)** - Full deployment guide
+- **🐳 [docker-compose.NEW-NEXTCLOUD.yml](docker-compose.NEW-NEXTCLOUD.yml)** - Complete Nextcloud + MySQL setup
 - **📋 [DEPLOYMENT_CONFIG.md](DEPLOYMENT_CONFIG.md)** - Configuration checklist
-- **🐳 [docker-compose.yml](docker-compose.yml)** - Complete Nextcloud setup
 
 ### What's New in v4.2:
 - ✅ Paste functionality for session exports
 - ✅ Better export parsing and processing
-- ✅ Complete Docker Compose setup for Nextcloud
+- ✅ Works with existing Nextcloud (no database needed!)
+- ✅ Complete setup for new Nextcloud installations
 - ✅ Automated inbox watcher service
+- ✅ AI agent integration instructions
 - ✅ Configurable installation script
-- ✅ Clear deployment instructions
 
-**👉 Start here**: [QUICK_DEPLOY.md](QUICK_DEPLOY.md)
+**👉 Most users start here**: [EXISTING_NEXTCLOUD_INTEGRATION.md](EXISTING_NEXTCLOUD_INTEGRATION.md) (5 mins)
+**👉 AI Agent users**: [agent.md](agent.md) (20 mins)
 
 ---
 
