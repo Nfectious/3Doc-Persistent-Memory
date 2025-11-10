@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valkyrie Memory Command Center</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            color: #00ff9f;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 255, 159, 0.1);
+            border: 2px solid #00ff9f;
+            border-radius: 10px;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ff9f;
+        }
+        
+        .header .subtitle {
+            color: #00d4ff;
+            font-size: 0.9em;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #00ff9f;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .panel h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            border-bottom: 1px solid #00ff9f;
+            padding-bottom: 10px;
+        }
+        
+        .project-list {
+            list-style: none;
+        }
+        
+        .project-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 255, 159, 0.05);
+            border-left: 3px solid #00ff9f;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .project-item:hover {
+            background: rgba(0, 255, 159, 0.15);
+            border-left-width: 5px;
+        }
+        
+        .project-item.active {
+            border-left-color: #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .project-item.inactive {
+            border-left-color: #666;
+            opacity: 0.6;
+        }
+        
+        .project-name {
+            font-weight: bold;
+            flex: 1;
+        }
+        
+        .project-time {
+            font-size: 0.8em;
+            color: #00d4ff;
+        }
+        
+        .status-icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .session-start {
+            grid-column: 1 / -1;
+        }
+        
+        .project-selector {
+            margin: 20px 0;
+        }
+        
+        .project-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(0, 255, 159, 0.05);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .project-checkbox:hover {
+            background: rgba(0, 255, 159, 0.15);
+        }
+        
+        .project-checkbox input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .project-checkbox label {
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: 2px solid #00ff9f;
+            background: rgba(0, 255, 159, 0.1);
+            color: #00ff9f;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn:hover {
+            background: rgba(0, 255, 159, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 159, 0.5);
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        
+        .btn-primary:hover {
+            background: rgba(0, 212, 255, 0.4);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+        
+        .selected-count {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 255, 159, 0.1);
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            border: 2px solid #00ff9f;
+            background: rgba(0, 255, 159, 0.05);
+            color: #00ff9f;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: rgba(0, 255, 159, 0.2);
+            border-bottom-color: transparent;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background: rgba(0, 20, 40, 0.5);
+            border: 1px solid #00ff9f;
+            color: #00ff9f;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            background: rgba(0, 255, 159, 0.1);
+            border: 1px solid #00ff9f;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #00ff9f;
+            margin-top: 5px;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        
+        .alert-success {
+            background: rgba(0, 255, 159, 0.1);
+            border-color: #00ff9f;
+            color: #00ff9f;
+        }
+        
+        .alert-error {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff0000;
+            color: #ff6b6b;
+        }
+        
+        .alert-info {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        #copyOutput {
+            margin-top: 20px;
+        }
+        
+        .memory-preview {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0, 20, 40, 0.5);
+            border: 1px solid #00ff9f;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .quick-action {
+            padding: 15px;
+            background: rgba(0, 255, 159, 0.05);
+            border: 1px solid #00ff9f;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .quick-action:hover {
+            background: rgba(0, 255, 159, 0.15);
+            border-width: 2px;
+        }
+        
+        .quick-action-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩸 VALKYRIE MEMORY COMMAND CENTER</h1>
+            <div class="subtitle">Multi-Project Memory Management System v4.1</div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+            <div class="tab" onclick="switchTab('session')">🚀 Session Start</div>
+            <div class="tab" onclick="switchTab('quick')">⚡ Quick Actions</div>
+            <div class="tab" onclick="switchTab('manage')">⚙️ Manage</div>
+        </div>
+        
+        <!-- DASHBOARD TAB -->
+        <div id="dashboard-tab" class="tab-content active">
+            <div class="dashboard">
+                <div class="panel">
+                    <h2>📁 Active Projects</h2>
+                    <ul class="project-list" id="projectList">
+                        <li class="project-item active" onclick="selectProject('ebay_autods_bot')">
+                            <span class="status-icon">✅</span>
+                            <span class="project-name">eBay AutoDS Bot</span>
+                            <span class="project-time">2h ago</span>
+                        </li>
+                        <li class="project-item active" onclick="selectProject('phoenix_commandops')">
+                            <span class="status-icon">✅</span>
+                            <span class="project-name">Phoenix CommandOps</span>
+                            <span class="project-time">5h ago</span>
+                        </li>
+                        <li class="project-item active" onclick="selectProject('madison_mission')">
+                            <span class="status-icon">✅</span>
+                            <span class="project-name">Madison Mission</span>
+                            <span class="project-time">1d ago</span>
+                        </li>
+                        <li class="project-item inactive" onclick="selectProject('overthrow')">
+                            <span class="status-icon">⏸️</span>
+                            <span class="project-name">Overthrow</span>
+                            <span class="project-time">3d ago</span>
+                        </li>
+                        <li class="project-item inactive" onclick="selectProject('truthvault')">
+                            <span class="status-icon">⏸️</span>
+                            <span class="project-name">TruthVault</span>
+                            <span class="project-time">1w ago</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="panel">
+                    <h2>📊 System Stats</h2>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-number" id="totalProjects">5</div>
+                            <div class="stat-label">Total Projects</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="activeProjects">3</div>
+                            <div class="stat-label">Active</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="totalMemory">--</div>
+                            <div class="stat-label">Total Memory</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="lastUpdated">--</div>
+                            <div class="stat-label">Last Updated</div>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <div class="quick-action" onclick="switchTab('session')">
+                            <div class="quick-action-icon">🚀</div>
+                            <div>Start Session</div>
+                        </div>
+                        <div class="quick-action" onclick="switchTab('quick')">
+                            <div class="quick-action-icon">⚡</div>
+                            <div>Quick Append</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SESSION START TAB -->
+        <div id="session-tab" class="tab-content">
+            <div class="panel">
+                <h2>🚀 Session Start - Select Project(s)</h2>
+                
+                <div class="alert alert-info">
+                    💡 Select one or more projects to load their memory context. You can combine multiple projects for cross-context work.
+                </div>
+                
+                <div class="selected-count" id="selectedCount">
+                    0 projects selected
+                </div>
+                
+                <div class="project-selector">
+                    <div class="project-checkbox">
+                        <input type="checkbox" id="proj_global" value="global" onchange="updateSelection()">
+                        <label for="proj_global">🌐 Global (Cross-Project Context)</label>
+                    </div>
+                    <div class="project-checkbox">
+                        <input type="checkbox" id="proj_ebay" value="ebay_autods_bot" onchange="updateSelection()">
+                        <label for="proj_ebay">🛒 eBay AutoDS Bot</label>
+                    </div>
+                    <div class="project-checkbox">
+                        <input type="checkbox" id="proj_phoenix" value="phoenix_commandops" onchange="updateSelection()">
+                        <label for="proj_phoenix">🔥 Phoenix CommandOps</label>
+                    </div>
+                    <div class="project-checkbox">
+                        <input type="checkbox" id="proj_madison" value="madison_mission" onchange="updateSelection()">
+                        <label for="proj_madison">💝 Madison Mission</label>
+                    </div>
+                    <div class="project-checkbox">
+                        <input type="checkbox" id="proj_overthrow" value="overthrow" onchange="updateSelection()">
+                        <label for="proj_overthrow">⚔️ Overthrow</label>
+                    </div>
+                    <div class="project-checkbox">
+                        <input type="checkbox" id="proj_truthvault" value="truthvault" onchange="updateSelection()">
+                        <label for="proj_truthvault">📜 TruthVault</label>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="copySelectedMemory()">
+                        📋 Copy Selected Memory for AI
+                    </button>
+                    <button class="btn" onclick="previewSelectedMemory()">
+                        👁️ Preview Memory
+                    </button>
+                </div>
+                
+                <div id="copyOutput" class="hidden">
+                    <div class="alert alert-success">
+                        ✅ Memory copied to clipboard! Paste into your AI chat.
+                    </div>
+                    <div class="memory-preview" id="memoryPreview"></div>
+                </div>
+                
+                <div id="errorOutput" class="hidden">
+                    <div class="alert alert-error" id="errorMessage"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- QUICK ACTIONS TAB -->
+        <div id="quick-tab" class="tab-content">
+            <div class="panel">
+                <h2>⚡ Quick Actions</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <label>Select Project:</label>
+                    <select id="quickProject" style="width: 100%; padding: 10px; background: rgba(0,20,40,0.8); border: 1px solid #00ff9f; color: #00ff9f; margin-top: 10px; border-radius: 5px;">
+                        <option value="global">Global</option>
+                        <option value="ebay_autods_bot">eBay AutoDS Bot</option>
+                        <option value="phoenix_commandops">Phoenix CommandOps</option>
+                        <option value="madison_mission">Madison Mission</option>
+                        <option value="overthrow">Overthrow</option>
+                        <option value="truthvault">TruthVault</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label>Quick Append:</label>
+                    <textarea id="quickAppend" placeholder="Type your quick note here and it will be appended to the selected project's memory..."></textarea>
+                </div>
+                
+                <button class="btn btn-primary" onclick="doQuickAppend()">
+                    ➕ Append to Project Memory
+                </button>
+                
+                <div id="appendOutput" class="hidden" style="margin-top: 20px;">
+                    <div class="alert alert-success">
+                        ✅ Note appended successfully!
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- MANAGE TAB -->
+        <div id="manage-tab" class="tab-content">
+            <div class="panel">
+                <h2>⚙️ Manage Projects</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <label>Project Name:</label>
+                    <input type="text" id="newProjectName" placeholder="new_project_name" style="width: 100%; padding: 10px; background: rgba(0,20,40,0.8); border: 1px solid #00ff9f; color: #00ff9f; margin-top: 10px; border-radius: 5px;">
+                </div>
+                
+                <button class="btn" onclick="createProject()">
+                    ➕ Create New Project
+                </button>
+                
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <strong>Upload Session Export:</strong><br>
+                    Drag and drop your AI session export JSON file here, or use the API endpoint.<br>
+                    <code>POST /api.php?action=upload</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedProjects = [];
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function selectProject(projectId) {
+            // Switch to session tab and check the project
+            switchTab('session');
+            const checkbox = document.querySelector(`input[value="${projectId}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+                updateSelection();
+            }
+        }
+        
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('.project-checkbox input[type="checkbox"]:checked');
+            selectedProjects = Array.from(checkboxes).map(cb => cb.value);
+            
+            const count = selectedProjects.length;
+            const countText = count === 0 ? 'No projects selected' : 
+                             count === 1 ? '1 project selected' :
+                             `${count} projects selected`;
+            document.getElementById('selectedCount').textContent = countText;
+            
+            // Hide previous outputs
+            document.getElementById('copyOutput').classList.add('hidden');
+            document.getElementById('errorOutput').classList.add('hidden');
+        }
+        
+        async function copySelectedMemory() {
+            if (selectedProjects.length === 0) {
+                showError('Please select at least one project.');
+                return;
+            }
+            
+            try {
+                // Fetch memory for selected projects
+                const response = await fetch('api.php?action=get_memory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        projects: selectedProjects
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch memory');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const memoryText = data.memory;
+                
+                // Copy to clipboard
+                await navigator.clipboard.writeText(memoryText);
+                
+                // Show success
+                document.getElementById('memoryPreview').textContent = memoryText;
+                document.getElementById('copyOutput').classList.remove('hidden');
+                document.getElementById('errorOutput').classList.add('hidden');
+                
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+        
+        async function previewSelectedMemory() {
+            if (selectedProjects.length === 0) {
+                showError('Please select at least one project.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('api.php?action=get_memory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        projects: selectedProjects
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch memory');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Show preview without copying
+                document.getElementById('memoryPreview').textContent = data.memory;
+                document.getElementById('copyOutput').classList.remove('hidden');
+                document.getElementById('errorOutput').classList.add('hidden');
+                
+                // Change alert to info
+                document.querySelector('#copyOutput .alert').className = 'alert alert-info';
+                document.querySelector('#copyOutput .alert').textContent = '👁️ Memory Preview (not copied)';
+                
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+        
+        async function doQuickAppend() {
+            const project = document.getElementById('quickProject').value;
+            const text = document.getElementById('quickAppend').value.trim();
+            
+            if (!text) {
+                alert('Please enter some text to append.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('api.php?action=append', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project: project,
+                        text: text
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to append');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Show success
+                document.getElementById('appendOutput').classList.remove('hidden');
+                document.getElementById('quickAppend').value = '';
+                
+                setTimeout(() => {
+                    document.getElementById('appendOutput').classList.add('hidden');
+                }, 3000);
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function createProject() {
+            const name = document.getElementById('newProjectName').value.trim();
+            
+            if (!name) {
+                alert('Please enter a project name.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('api.php?action=create_project', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project: name
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create project');
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                alert('✅ Project created: ' + name);
+                document.getElementById('newProjectName').value = '';
+                location.reload();
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorOutput').classList.remove('hidden');
+            document.getElementById('copyOutput').classList.add('hidden');
+        }
+        
+        // Load stats on page load
+        async function loadStats() {
+            try {
+                const response = await fetch('api.php?action=stats');
+                const data = await response.json();
+                
+                if (data.totalMemory) {
+                    document.getElementById('totalMemory').textContent = data.totalMemory;
+                }
+                if (data.lastUpdated) {
+                    document.getElementById('lastUpdated').textContent = data.lastUpdated;
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+        
+        // Load on page load
+        loadStats();
+    </script>
+</body>
+</html>

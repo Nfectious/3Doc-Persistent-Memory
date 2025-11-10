@@ -1,0 +1,100 @@
+# Valkyrie Memory System .gitignore
+
+# Memory Data (user content - never commit)
+/memory/
+*.memory.md
+PROJECT_MEMORY.md
+INSIGHTS_LOG.md
+NEXT_ACTIONS.md
+
+# Configuration (may contain sensitive data)
+config/config.local.php
+config/secrets.php
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+/var/log/
+
+# Temporary Files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+nbproject/
+
+# OS Files
+Thumbs.db
+Desktop.ini
+.Spotlight-V100
+.Trashes
+
+# Backup Files
+*.bak
+*.backup
+*.old
+*_backup_*/
+*_old_*/
+
+# PHP
+vendor/
+composer.lock
+.phpunit.result.cache
+
+# Node.js (if using build tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Build Output
+dist/
+build/
+*.min.js
+*.min.css
+
+# Test Output
+coverage/
+.nyc_output/
+
+# Archives
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+
+# Sensitive Data
+*.key
+*.pem
+*.crt
+*.p12
+secrets/
+credentials/
+
+# User Specific
+.user.ini
+custom_configs/
+
+# Cache
+cache/
+*.cache
+
+# Database (if added in future)
+*.sqlite
+*.db
+
+# Documentation Build
+docs/_build/
+site/
