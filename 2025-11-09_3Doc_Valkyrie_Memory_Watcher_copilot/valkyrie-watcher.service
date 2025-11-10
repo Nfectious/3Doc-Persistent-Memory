@@ -1,0 +1,16 @@
+[Unit]
+Description=Valkyrie Inbox Watcher
+After=network.target
+
+[Service]
+Type=simple
+User=valkyrie
+Group=valkyrie
+ExecStart=/opt/valkyrie/inbox_watcher.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/valkyrie_watcher.log
+StandardError=append:/var/log/valkyrie_watcher.log
+
+[Install]
+WantedBy=multi-user.target
