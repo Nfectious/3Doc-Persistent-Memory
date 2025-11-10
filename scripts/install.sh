@@ -28,11 +28,11 @@ USER="valkyrie"
 GROUP="valkyrie"
 
 # TODO: Update these placeholders before running
-DOMAIN="aimem.yourdomain.com"  # Change to your actual domain
-PHP_VERSION="7.4"               # Change if using different PHP version (e.g., 8.1, 8.2)
+DOMAIN="aimem.bsapservices.com"  # Change to your actual domain
+PHP_VERSION="8.3.6"               # Change if using different PHP version (e.g., 8.1, 8.2)
 
 # Default projects to create (customize as needed)
-DEFAULT_PROJECTS="project1 project2 project3"  # Space-separated list
+DEFAULT_PROJECTS="ebay_autods_bot truthvault cryptosite mytradesgui progressive infolookup"  # Space-separated list
 
 # Functions
 print_header() {
