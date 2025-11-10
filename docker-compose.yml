@@ -1,0 +1,162 @@
+version: '3.8'
+
+# ========================================
+# Valkyrie Memory + Nextcloud Docker Setup
+# ========================================
+#
+# IMPORTANT: Update the placeholders below before deploying:
+# - YOUR_NEXTCLOUD_USERNAME
+# - YOUR_MYSQL_ROOT_PASSWORD
+# - YOUR_MYSQL_PASSWORD
+# - YOUR_DOMAIN
+#
+# Usage:
+#   1. Update all TODO sections below
+#   2. Run: docker-compose up -d
+#   3. Configure Nextcloud through web interface
+#   4. Run files:scan to detect mounted Valkyrie folder
+#
+
+services:
+  # ========================================
+  # Nextcloud Application
+  # ========================================
+  nextcloud:
+    image: nextcloud:latest
+    container_name: nextcloud
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # Nextcloud data volume
+      - nextcloud_data:/var/www/html
+
+      # TODO: Update YOUR_NEXTCLOUD_USERNAME to your actual Nextcloud username
+      # This mounts the Valkyrie memory directory into Nextcloud
+      - /opt/valkyrie/memory:/var/www/html/data/YOUR_NEXTCLOUD_USERNAME/files/Valkyrie:rw
+    environment:
+      # Database connection
+      - MYSQL_HOST=db
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+
+      # TODO: Update YOUR_MYSQL_PASSWORD (must match db service)
+      - MYSQL_PASSWORD=YOUR_MYSQL_PASSWORD
+
+      # Nextcloud configuration
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin123  # TODO: Change this!
+
+      # TODO: Update YOUR_DOMAIN to your actual domain
+      - NEXTCLOUD_TRUSTED_DOMAINS=YOUR_DOMAIN localhost 127.0.0.1
+
+      # PHP Upload limits (for Valkyrie file uploads)
+      - PHP_UPLOAD_LIMIT=10M
+    depends_on:
+      - db
+    networks:
+      - nextcloud_network
+
+  # ========================================
+  # MariaDB Database
+  # ========================================
+  db:
+    image: mariadb:10.6
+    container_name: nextcloud_db
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      # TODO: Update YOUR_MYSQL_ROOT_PASSWORD
+      - MYSQL_ROOT_PASSWORD=YOUR_MYSQL_ROOT_PASSWORD
+
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+
+      # TODO: Update YOUR_MYSQL_PASSWORD (must match nextcloud service)
+      - MYSQL_PASSWORD=YOUR_MYSQL_PASSWORD
+    networks:
+      - nextcloud_network
+
+  # ========================================
+  # Redis Cache (Optional but Recommended)
+  # ========================================
+  redis:
+    image: redis:alpine
+    container_name: nextcloud_redis
+    restart: unless-stopped
+    networks:
+      - nextcloud_network
+
+# ========================================
+# Volumes
+# ========================================
+volumes:
+  nextcloud_data:
+    driver: local
+  db_data:
+    driver: local
+
+# ========================================
+# Networks
+# ========================================
+networks:
+  nextcloud_network:
+    driver: bridge
+
+# ========================================
+# DEPLOYMENT STEPS
+# ========================================
+#
+# 1. Update all TODO items above with your actual values
+#
+# 2. Create Valkyrie memory directory (if not already created):
+#    sudo mkdir -p /opt/valkyrie/memory
+#
+# 3. Start the containers:
+#    docker-compose up -d
+#
+# 4. Wait for Nextcloud to initialize (1-2 minutes)
+#
+# 5. Access Nextcloud:
+#    http://YOUR_DOMAIN:8080
+#    or http://localhost:8080
+#
+# 6. Complete Nextcloud setup through web interface if needed
+#
+# 7. Fix permissions (IMPORTANT):
+#    sudo chown -R 33:33 /opt/valkyrie/memory/
+#    sudo chmod -R 775 /opt/valkyrie/memory/
+#
+#    Note: 33:33 is the www-data user inside the container
+#
+# 8. Scan files to detect the Valkyrie folder:
+#    docker exec -u www-data nextcloud php occ files:scan YOUR_NEXTCLOUD_USERNAME
+#
+# 9. Configure Redis (Optional but recommended):
+#    docker exec -u www-data nextcloud php occ config:system:set redis host --value=redis
+#    docker exec -u www-data nextcloud php occ config:system:set redis port --value=6379
+#    docker exec -u www-data nextcloud php occ config:system:set memcache.locking --value='\OC\Memcache\Redis'
+#    docker exec -u www-data nextcloud php occ config:system:set memcache.distributed --value='\OC\Memcache\Redis'
+#
+# 10. Install inbox watcher (for automated file processing):
+#     See: 2025-11-09_3Doc_Valkyrie_Memory_V4-2/NEXTCLOUD_DOCKER_INTEGRATION.md
+#
+# ========================================
+# TROUBLESHOOTING
+# ========================================
+#
+# Files not showing in Nextcloud?
+#   docker exec -u www-data nextcloud php occ files:scan --all
+#
+# Permission denied errors?
+#   sudo chown -R 33:33 /opt/valkyrie/memory/
+#   docker restart nextcloud
+#
+# Check logs:
+#   docker-compose logs -f nextcloud
+#
+# Access Nextcloud container shell:
+#   docker exec -it nextcloud bash
+#

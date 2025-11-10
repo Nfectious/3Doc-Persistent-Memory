@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Valkyrie Memory System - Installation Script
-# Version: 4.1.0
+# Version: 4.2.0
 #
 # This script installs Valkyrie Memory System on a Linux server
 # Supports: Ubuntu 20.04+, Debian 10+
@@ -18,19 +18,28 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
+# ========================================
+# CONFIGURATION - UPDATE THESE VALUES
+# ========================================
 INSTALL_DIR="/opt/valkyrie"
 WEB_DIR="/var/www/valkyrie"
 MEMORY_DIR="$INSTALL_DIR/memory"
 USER="valkyrie"
 GROUP="valkyrie"
 
+# TODO: Update these placeholders before running
+DOMAIN="aimem.yourdomain.com"  # Change to your actual domain
+PHP_VERSION="7.4"               # Change if using different PHP version (e.g., 8.1, 8.2)
+
+# Default projects to create (customize as needed)
+DEFAULT_PROJECTS="project1 project2 project3"  # Space-separated list
+
 # Functions
 print_header() {
     echo -e "${BLUE}"
     echo "╔══════════════════════════════════════════════════════╗"
     echo "║                                                      ║"
-    echo "║       🩸 VALKYRIE MEMORY SYSTEM v4.1.0              ║"
+    echo "║       🩸 VALKYRIE MEMORY SYSTEM v4.2.0              ║"
     echo "║          Installation Script                         ║"
     echo "║                                                      ║"
     echo "╚══════════════════════════════════════════════════════╝"
@@ -76,20 +85,20 @@ check_os() {
 
 check_dependencies() {
     print_step "Checking dependencies..."
-    
+
     MISSING=()
-    
+
     # Check for required commands
     command -v nginx >/dev/null 2>&1 || MISSING+=("nginx")
-    command -v php >/dev/null 2>&1 || MISSING+=("php7.4-fpm php7.4-cli")
-    
+    command -v php >/dev/null 2>&1 || MISSING+=("php${PHP_VERSION}-fpm php${PHP_VERSION}-cli")
+
     if [ ${#MISSING[@]} -gt 0 ]; then
         print_warning "Missing dependencies: ${MISSING[*]}"
         print_step "Installing dependencies..."
-        
+
         apt update
-        apt install -y nginx php7.4-fpm php7.4-cli php7.4-json php7.4-mbstring
-        
+        apt install -y nginx php${PHP_VERSION}-fpm php${PHP_VERSION}-cli php${PHP_VERSION}-json php${PHP_VERSION}-mbstring
+
         print_success "Dependencies installed"
     else
         print_success "All dependencies present"
@@ -109,7 +118,7 @@ create_user() {
 
 create_directories() {
     print_step "Creating directory structure..."
-    
+
     # Create main directories
     mkdir -p "$INSTALL_DIR"
     mkdir -p "$MEMORY_DIR/projects"
@@ -117,11 +126,11 @@ create_directories() {
     mkdir -p "$MEMORY_DIR/_incoming"
     mkdir -p "$MEMORY_DIR/_archive"
     mkdir -p "$WEB_DIR"
-    
-    # Create default projects
-    for project in ebay_autods_bot phoenix_commandops madison_mission overthrow truthvault; do
+
+    # Create default projects from configuration
+    for project in $DEFAULT_PROJECTS; do
         mkdir -p "$MEMORY_DIR/projects/$project"
-        
+
         # Initialize memory files
         cat > "$MEMORY_DIR/projects/$project/PROJECT_MEMORY.md" <<EOF
 # PROJECT: $project
@@ -131,12 +140,12 @@ Created: $(date '+%Y-%m-%d %H:%M:%S')
 ## Overview
 
 EOF
-        
+
         cat > "$MEMORY_DIR/projects/$project/INSIGHTS_LOG.md" <<EOF
 # INSIGHTS LOG: $project
 
 EOF
-        
+
         cat > "$MEMORY_DIR/projects/$project/NEXT_ACTIONS.md" <<EOF
 # NEXT ACTIONS: $project
 
@@ -197,49 +206,50 @@ set_permissions() {
 
 configure_nginx() {
     print_step "Configuring Nginx..."
-    
-    cat > /etc/nginx/sites-available/valkyrie <<'EOF'
+
+    cat > /etc/nginx/sites-available/valkyrie <<EOF
 server {
     listen 80;
-    server_name _;
-    
+    server_name ${DOMAIN};
+
     root /var/www/valkyrie;
     index index.html;
-    
+
     location / {
-        try_files $uri $uri/ =404;
+        try_files \$uri \$uri/ =404;
     }
-    
-    location ~ \.php$ {
+
+    location ~ \.php\$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
-    
+
     location ~ /\.ht {
         deny all;
     }
-    
-    # Rate limiting for API
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-    
+
     location = /api.php {
-        limit_req zone=api burst=20;
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
+
+    # Increase upload limits for file uploads
+    client_max_body_size 10M;
 }
 EOF
-    
+
     # Enable site
     ln -sf /etc/nginx/sites-available/valkyrie /etc/nginx/sites-enabled/valkyrie
-    
+
     # Test configuration
     nginx -t
-    
+
     # Restart Nginx
     systemctl restart nginx
-    systemctl restart php7.4-fpm
-    
+    systemctl restart php${PHP_VERSION}-fpm
+
     print_success "Nginx configured and restarted"
 }
 
@@ -306,16 +316,17 @@ print_completion() {
     echo "╚══════════════════════════════════════════════════════╝"
     echo -e "${NC}"
     echo ""
-    echo "📍 Web Interface: http://$(hostname -I | awk '{print $1}')/valkyrie"
-    echo "📍 Or configure DNS: http://aimem.yourdomain.com"
+    echo "📍 Web Interface: http://${DOMAIN}"
+    echo "📍 Or by IP: http://$(hostname -I | awk '{print $1}')"
     echo ""
     echo "🔧 Next Steps:"
-    echo "  1. Access web interface"
-    echo "  2. Select a project"
-    echo "  3. Copy memory to AI session"
+    echo "  1. Configure DNS to point ${DOMAIN} to this server"
+    echo "  2. Access web interface"
+    echo "  3. Select a project"
+    echo "  4. Copy memory to AI session"
     echo ""
-    echo "📚 Documentation: https://github.com/yourusername/valkyrie-memory-system"
-    echo "💬 Support: https://github.com/yourusername/valkyrie-memory-system/issues"
+    echo "🐳 For Nextcloud Docker integration, see:"
+    echo "   2025-11-09_3Doc_Valkyrie_Memory_V4-2/NEXTCLOUD_DOCKER_INTEGRATION.md"
     echo ""
     echo "⚡ Quick Commands:"
     echo "  vproject list           - List all projects"

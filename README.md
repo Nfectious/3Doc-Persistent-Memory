@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-4.1.0-blue)
+![Version](https://img.shields.io/badge/version-4.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20|%20Windows-lightgrey)
 ![Status](https://img.shields.io/badge/status-production-success)
@@ -14,6 +14,27 @@
 [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Demo](#-demo) • [Contributing](#-contributing)
 
 </div>
+
+---
+
+## 🚀 **NEW: Ready-to-Deploy Version 4.2**
+
+**📦 This repository is now deployment-ready for Contabo servers with Nginx + Nextcloud Docker!**
+
+### Quick Deployment Guides:
+- **⚡ [QUICK_DEPLOY.md](QUICK_DEPLOY.md)** - Step-by-step deployment (10-30 mins)
+- **📋 [DEPLOYMENT_CONFIG.md](DEPLOYMENT_CONFIG.md)** - Configuration checklist
+- **🐳 [docker-compose.yml](docker-compose.yml)** - Complete Nextcloud setup
+
+### What's New in v4.2:
+- ✅ Paste functionality for session exports
+- ✅ Better export parsing and processing
+- ✅ Complete Docker Compose setup for Nextcloud
+- ✅ Automated inbox watcher service
+- ✅ Configurable installation script
+- ✅ Clear deployment instructions
+
+**👉 Start here**: [QUICK_DEPLOY.md](QUICK_DEPLOY.md)
 
 ---
 
