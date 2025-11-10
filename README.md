@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-4.1.0-blue)
+![Version](https://img.shields.io/badge/version-4.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20|%20Windows-lightgrey)
 ![Status](https://img.shields.io/badge/status-production-success)
@@ -14,6 +14,37 @@
 [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Demo](#-demo) • [Contributing](#-contributing)
 
 </div>
+
+---
+
+## 🚀 **NEW: Ready-to-Deploy Version 4.2**
+
+**📦 This repository is now deployment-ready for Contabo servers with Nginx + Nextcloud Docker!**
+
+### Choose Your Path:
+
+#### **Path 1: Already Have Nextcloud?** ✅ (Recommended - 5 minutes)
+**You DON'T need a database!** Just integrate with your existing Nextcloud:
+- **🔗 [EXISTING_NEXTCLOUD_INTEGRATION.md](EXISTING_NEXTCLOUD_INTEGRATION.md)** - Add one line to your docker-compose.yml
+- **🤖 [agent.md](agent.md)** - Complete guide for AI agents (includes integration steps)
+
+#### **Path 2: Need New Nextcloud?** (20 minutes)
+Starting from scratch? We've got you covered:
+- **⚡ [QUICK_DEPLOY.md](QUICK_DEPLOY.md)** - Full deployment guide
+- **🐳 [docker-compose.NEW-NEXTCLOUD.yml](docker-compose.NEW-NEXTCLOUD.yml)** - Complete Nextcloud + MySQL setup
+- **📋 [DEPLOYMENT_CONFIG.md](DEPLOYMENT_CONFIG.md)** - Configuration checklist
+
+### What's New in v4.2:
+- ✅ Paste functionality for session exports
+- ✅ Better export parsing and processing
+- ✅ Works with existing Nextcloud (no database needed!)
+- ✅ Complete setup for new Nextcloud installations
+- ✅ Automated inbox watcher service
+- ✅ AI agent integration instructions
+- ✅ Configurable installation script
+
+**👉 Most users start here**: [EXISTING_NEXTCLOUD_INTEGRATION.md](EXISTING_NEXTCLOUD_INTEGRATION.md) (5 mins)
+**👉 AI Agent users**: [agent.md](agent.md) (20 mins)
 
 ---
 

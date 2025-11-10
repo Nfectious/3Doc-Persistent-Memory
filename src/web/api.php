@@ -1,7 +1,7 @@
 <?php
 /**
- * Valkyrie Memory System API v4.1
- * Multi-Project Memory Management
+ * Valkyrie Memory System API v4.2
+ * Added: Paste export processing
  */
 
 header('Content-Type: application/json');
@@ -14,7 +14,7 @@ $MEMORY_BASE = '/opt/valkyrie/memory';
 $PROJECTS_DIR = "$MEMORY_BASE/projects";
 $GLOBAL_DIR = "$MEMORY_BASE/global";
 
-// Handle OPTIONS request
+// Handle OPTIONS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -31,6 +31,9 @@ switch ($action) {
     case 'append':
         appendToMemory();
         break;
+    case 'process_export':
+        processExport();
+        break;
     case 'create_project':
         createProject();
         break;
@@ -45,6 +48,196 @@ switch ($action) {
         break;
     default:
         sendResponse(['error' => 'Unknown action'], 400);
+}
+
+/**
+ * Process pasted export text
+ */
+function processExport() {
+    global $PROJECTS_DIR, $GLOBAL_DIR;
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    $exportText = $input['export_text'] ?? '';
+    $targetProject = $input['project'] ?? 'auto';
+    
+    if (empty($exportText)) {
+        sendResponse(['error' => 'Export text required'], 400);
+        return;
+    }
+    
+    // Parse export
+    $parsed = parseValkyrieExport($exportText);
+    
+    if (!$parsed) {
+        sendResponse(['error' => 'Invalid export format'], 400);
+        return;
+    }
+    
+    // Determine project
+    if ($targetProject === 'auto') {
+        $targetProject = detectProject($exportText);
+    }
+    
+    $projectDir = ($targetProject === 'global') ? $GLOBAL_DIR : "$PROJECTS_DIR/$targetProject";
+    
+    if (!is_dir($projectDir)) {
+        sendResponse(['error' => 'Project not found: ' . $targetProject], 404);
+        return;
+    }
+    
+    // Append to PROJECT_MEMORY.md
+    $timestamp = date('Y-m-d H:i:s');
+    $entry = "\n\n---\n";
+    $entry .= "## Session Export - $timestamp\n\n";
+    $entry .= "**Date**: {$parsed['date']}\n";
+    $entry .= "**Time**: {$parsed['time']}\n";
+    $entry .= "**Session**: {$parsed['session']}\n\n";
+    
+    if (!empty($parsed['decisions'])) {
+        $entry .= "### Decisions\n";
+        foreach ($parsed['decisions'] as $decision) {
+            $entry .= "- $decision\n";
+        }
+        $entry .= "\n";
+    }
+    
+    if (!empty($parsed['status'])) {
+        $entry .= "### Status\n";
+        $entry .= $parsed['status'] . "\n\n";
+    }
+    
+    file_put_contents("$projectDir/PROJECT_MEMORY.md", $entry, FILE_APPEND | LOCK_EX);
+    
+    // Append insights to INSIGHTS_LOG.md
+    if (!empty($parsed['insights'])) {
+        $insightsEntry = "\n\n---\n";
+        $insightsEntry .= "## $timestamp\n\n";
+        foreach ($parsed['insights'] as $insight) {
+            $insightsEntry .= "- $insight\n";
+        }
+        file_put_contents("$projectDir/INSIGHTS_LOG.md", $insightsEntry, FILE_APPEND | LOCK_EX);
+    }
+    
+    // Append actions to NEXT_ACTIONS.md
+    if (!empty($parsed['actions'])) {
+        $actionsEntry = "\n\n---\n";
+        $actionsEntry .= "## Updated: $timestamp\n\n";
+        foreach ($parsed['actions'] as $action) {
+            $actionsEntry .= "- $action\n";
+        }
+        file_put_contents("$projectDir/NEXT_ACTIONS.md", $actionsEntry, FILE_APPEND | LOCK_EX);
+    }
+    
+    sendResponse([
+        'success' => true,
+        'project' => $targetProject,
+        'timestamp' => $timestamp,
+        'sections_processed' => [
+            'decisions' => count($parsed['decisions'] ?? []),
+            'insights' => count($parsed['insights'] ?? []),
+            'actions' => count($parsed['actions'] ?? [])
+        ]
+    ]);
+}
+
+/**
+ * Parse Valkyrie export format
+ */
+function parseValkyrieExport($text) {
+    if (!preg_match('/=== VALKYRIE SESSION EXPORT ===/i', $text)) {
+        return false;
+    }
+    
+    $result = [
+        'date' => '',
+        'time' => '',
+        'session' => '',
+        'decisions' => [],
+        'scripts' => [],
+        'status' => '',
+        'insights' => [],
+        'actions' => []
+    ];
+    
+    // Extract date
+    if (preg_match('/DATE:\s*(.+)/i', $text, $matches)) {
+        $result['date'] = trim($matches[1]);
+    }
+    
+    // Extract time
+    if (preg_match('/TIME:\s*(.+)/i', $text, $matches)) {
+        $result['time'] = trim($matches[1]);
+    }
+    
+    // Extract session
+    if (preg_match('/SESSION:\s*(.+)/i', $text, $matches)) {
+        $result['session'] = trim($matches[1]);
+    }
+    
+    // Extract sections
+    $result['decisions'] = extractSection($text, 'DECISIONS');
+    $result['scripts'] = extractSection($text, 'SCRIPTS');
+    $result['insights'] = extractSection($text, 'INSIGHTS');
+    $result['actions'] = extractSection($text, 'ACTIONS');
+    
+    // Extract status (multi-line)
+    if (preg_match('/\[STATUS\](.*?)\[(?:INSIGHTS|ACTIONS)/s', $text, $matches)) {
+        $result['status'] = trim($matches[1]);
+    }
+    
+    return $result;
+}
+
+/**
+ * Extract section items
+ */
+function extractSection($text, $sectionName) {
+    $pattern = '/\[' . $sectionName . '\](.*?)\[(?:\w+|\s*=)/s';
+    if (!preg_match($pattern, $text, $matches)) {
+        return [];
+    }
+    
+    $content = trim($matches[1]);
+    $lines = explode("\n", $content);
+    $items = [];
+    
+    foreach ($lines as $line) {
+        $line = trim($line);
+        // Skip empty lines and checkboxes
+        $line = preg_replace('/^[-\*]\s*\[.\]\s*/', '', $line);
+        $line = preg_replace('/^[-\*]\s*/', '', $line);
+        
+        if (!empty($line) && $line !== '') {
+            $items[] = $line;
+        }
+    }
+    
+    return $items;
+}
+
+/**
+ * Detect project from export content
+ */
+function detectProject($text) {
+    $text = strtolower($text);
+    
+    $patterns = [
+        'ebay_autods_bot' => ['ebay', 'autods', 'dropship'],
+        'phoenix_commandops' => ['phoenix', 'commandops', 'dashboard'],
+        'madison_mission' => ['madison', 'daughter'],
+        'overthrow' => ['overthrow', 'accountability'],
+        'truthvault' => ['truthvault', 'truth vault', 'documentation']
+    ];
+    
+    foreach ($patterns as $project => $keywords) {
+        foreach ($keywords as $keyword) {
+            if (stripos($text, $keyword) !== false) {
+                return $project;
+            }
+        }
+    }
+    
+    return 'global';
 }
 
 /**
@@ -81,7 +274,6 @@ function getMemory() {
         $memory[] = "## 📁 PROJECT: $project";
         $memory[] = "";
         
-        // Read the 3 memory files
         $files = [
             'PROJECT_MEMORY.md' => '📋 Project Memory',
             'INSIGHTS_LOG.md' => '💡 Insights Log',
@@ -122,7 +314,7 @@ function getMemory() {
 }
 
 /**
- * Append text to a project's memory
+ * Append text to memory
  */
 function appendToMemory() {
     global $PROJECTS_DIR, $GLOBAL_DIR;
@@ -145,8 +337,6 @@ function appendToMemory() {
     }
     
     $filepath = "$projectDir/$file";
-    
-    // Append with timestamp
     $timestamp = date('Y-m-d H:i:s');
     $entry = "\n\n---\n[Appended: $timestamp]\n\n$text\n";
     
@@ -164,7 +354,7 @@ function appendToMemory() {
 }
 
 /**
- * Create a new project
+ * Create project
  */
 function createProject() {
     global $PROJECTS_DIR;
@@ -177,9 +367,7 @@ function createProject() {
         return;
     }
     
-    // Sanitize project name
     $project = preg_replace('/[^a-z0-9_-]/i', '_', $project);
-    
     $projectDir = "$PROJECTS_DIR/$project";
     
     if (is_dir($projectDir)) {
@@ -187,15 +375,13 @@ function createProject() {
         return;
     }
     
-    // Create directory
     if (!mkdir($projectDir, 0755, true)) {
-        sendResponse(['error' => 'Failed to create project directory'], 500);
+        sendResponse(['error' => 'Failed to create project'], 500);
         return;
     }
     
-    // Create initial files
     $files = [
-        'PROJECT_MEMORY.md' => "# PROJECT: $project\n\nCreated: " . date('Y-m-d H:i:s') . "\n\n## Overview\n\n",
+        'PROJECT_MEMORY.md' => "# PROJECT: $project\n\nCreated: " . date('Y-m-d H:i:s') . "\n\n",
         'INSIGHTS_LOG.md' => "# INSIGHTS LOG: $project\n\n",
         'NEXT_ACTIONS.md' => "# NEXT ACTIONS: $project\n\n"
     ];
@@ -212,14 +398,13 @@ function createProject() {
 }
 
 /**
- * List all projects
+ * List projects
  */
 function listProjects() {
     global $PROJECTS_DIR, $GLOBAL_DIR;
     
     $projects = [];
     
-    // Add global
     if (is_dir($GLOBAL_DIR)) {
         $projects[] = [
             'id' => 'global',
@@ -229,7 +414,6 @@ function listProjects() {
         ];
     }
     
-    // Add project folders
     if (is_dir($PROJECTS_DIR)) {
         $dirs = scandir($PROJECTS_DIR);
         foreach ($dirs as $dir) {
@@ -255,7 +439,7 @@ function listProjects() {
 }
 
 /**
- * Get system stats
+ * Get stats
  */
 function getStats() {
     global $MEMORY_BASE;
@@ -263,10 +447,8 @@ function getStats() {
     $totalSize = 0;
     $lastUpdated = 0;
     
-    // Calculate total size recursively
     $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($MEMORY_BASE, RecursiveDirectoryIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::SELF_FIRST
+        new RecursiveDirectoryIterator($MEMORY_BASE, RecursiveDirectoryIterator::SKIP_DOTS)
     );
     
     foreach ($iterator as $file) {
@@ -279,7 +461,6 @@ function getStats() {
         }
     }
     
-    // Format size
     $units = ['B', 'KB', 'MB', 'GB'];
     $unitIndex = 0;
     while ($totalSize > 1024 && $unitIndex < count($units) - 1) {
@@ -289,10 +470,7 @@ function getStats() {
     
     $totalMemory = round($totalSize, 2) . ' ' . $units[$unitIndex];
     
-    // Format last updated
-    $now = time();
-    $diff = $now - $lastUpdated;
-    
+    $diff = time() - $lastUpdated;
     if ($diff < 3600) {
         $lastUpdatedStr = floor($diff / 60) . 'm ago';
     } elseif ($diff < 86400) {
@@ -305,7 +483,7 @@ function getStats() {
         'success' => true,
         'totalMemory' => $totalMemory,
         'lastUpdated' => $lastUpdatedStr,
-        'timestamp' => $now
+        'timestamp' => time()
     ]);
 }
 
@@ -323,36 +501,33 @@ function handleUpload() {
     $file = $_FILES['file'];
     $project = $_POST['project'] ?? 'auto';
     
-    // Read file content
     $content = file_get_contents($file['tmp_name']);
     
-    // Try to determine project from content (if auto)
+    // Try to detect project
     if ($project === 'auto') {
-        // Simple heuristic: look for project keywords in content
-        if (stripos($content, 'ebay') !== false || stripos($content, 'autods') !== false) {
-            $project = 'ebay_autods_bot';
-        } elseif (stripos($content, 'phoenix') !== false) {
-            $project = 'phoenix_commandops';
-        } elseif (stripos($content, 'madison') !== false) {
-            $project = 'madison_mission';
-        } else {
-            $project = 'global';
-        }
+        $project = detectProject($content);
     }
     
-    // Save to _incoming for processing
+    // Save to _incoming
     $incomingDir = "$MEMORY_BASE/_incoming";
     if (!is_dir($incomingDir)) {
         mkdir($incomingDir, 0755, true);
     }
     
     $timestamp = date('YmdHis');
-    $filename = "{$project}_{$timestamp}.json";
+    $filename = "{$project}_{$timestamp}.txt";
     $destPath = "$incomingDir/$filename";
     
     if (!move_uploaded_file($file['tmp_name'], $destPath)) {
         sendResponse(['error' => 'Failed to save file'], 500);
         return;
+    }
+    
+    // Try to process if it's a Valkyrie export
+    $parsed = parseValkyrieExport($content);
+    if ($parsed) {
+        // Process it automatically
+        processExportContent($content, $project);
     }
     
     sendResponse([
@@ -364,7 +539,35 @@ function handleUpload() {
 }
 
 /**
- * Send JSON response
+ * Helper to process export content
+ */
+function processExportContent($content, $project) {
+    global $PROJECTS_DIR, $GLOBAL_DIR;
+    
+    $parsed = parseValkyrieExport($content);
+    if (!$parsed) return;
+    
+    $projectDir = ($project === 'global') ? $GLOBAL_DIR : "$PROJECTS_DIR/$project";
+    if (!is_dir($projectDir)) return;
+    
+    $timestamp = date('Y-m-d H:i:s');
+    
+    // Append to files
+    $entry = "\n\n---\n## Session Export - $timestamp\n\n";
+    $entry .= "**Session**: {$parsed['session']}\n\n";
+    
+    if (!empty($parsed['decisions'])) {
+        $entry .= "### Decisions\n";
+        foreach ($parsed['decisions'] as $decision) {
+            $entry .= "- $decision\n";
+        }
+    }
+    
+    file_put_contents("$projectDir/PROJECT_MEMORY.md", $entry, FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * Send response
  */
 function sendResponse($data, $status = 200) {
     http_response_code($status);
