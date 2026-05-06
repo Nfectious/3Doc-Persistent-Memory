@@ -1,0 +1,26 @@
+Run this on server before starting Claude session to get memory:
+
+curl -s "http://127.0.0.1:8002/memory/valkyrie_scans_crypto?key=b0c544a67a62744218508a82f76bac74a2e20850a1d96c3fabea96dcaabf2190"
+
+Copy the output and paste it into Claude as:
+Today's objective: [state one thing]
+
+Here is my project memory:
+[paste curl output here]
+
+----
+
+
+Load my project memory before we begin:
+https://valkyrie-memory.json060107proton-me.workers.dev/memory/valkyrie_scans_crypto
+
+Today's objective:
+
+
+Run health check and confirm system state before anything else.
+Health Check
+systemctl is-active valkyrie-backend valkyrie-scanner valkyrie-sniper
+curl -s http://127.0.0.1:8000/status | python3 -c "import json,sys; d=json.load(sys.stdin); print('Backend OK | Model:', d.get('logic_engine'), '| Scans:', d.get('total_scans'), '| Regime:', d.get('regime'))"
+tail -n 5 /opt/valkyrie/logs/sniper.log
+tail -n 5 /opt/valkyrie/logs/scanner.log
+
